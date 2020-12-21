@@ -43,15 +43,15 @@ unsigned char Condition;
 
 // -----------------------------------------------
 
-unsigned char A;
+unsigned int A;
 
 // -----------------------------------------------
 
-unsigned char B;
+unsigned int B;
 
 // -----------------------------------------------
 
-unsigned char C;
+unsigned int C;
 
 // -----------------------------------------------
 
@@ -77,27 +77,27 @@ void *Commands[0xff];
 
 int Format3(unsigned char one, unsigned char two, unsigned char three)
 {
-    Condition =  one >> 4;
+    Condition =  (one >> 4) & 0xff;
     A =  one & 0x0f;
     B = 0;
-    C =  two << 8 | three;
+    C =  (two << 8) | three;
 
     return 1;
 }
 
 int Format2(unsigned char one, unsigned char two, unsigned char three)
 {
-    Condition =  one >> 4;
+    Condition =  (one >> 4) & 0xff;
     A =  one & 0x0f;
     B = ( two & 0xf0) >> 4;
-    C =  two & 0x0F << 8 | three;
+    C =  ((two & 0x0F) << 8) | three;
 
     return 1;
 }
 
 int Format1(unsigned char one, unsigned char two, unsigned char three)
 {
-    Condition =  one >> 4;
+    Condition =  (one >> 4) & 0xff;
     A =  one & 0x0f;
     B = ( two & 0xf0) >> 4;
     C =  two & 0x0f;
@@ -131,9 +131,22 @@ int RunCommand()
 {
     if (!CheckCondition()) return 1;
 
-    void (*fun_ptr)() = Commands[Command];
+    if (Command == 0xFF)
+    {
+        printf("jup\n");
+    }
 
-    if (fun_ptr == 0) return 0;
+    void (*fun_ptr)() = Commands[Command];
+    
+    if (Command == 0xFF)
+    {
+        printf("jup\n");
+    }
+    if (fun_ptr == 0)
+    {
+        printf("Not Supported\n");
+        return 0;
+    }
 
     (*fun_ptr)();
 
@@ -182,7 +195,7 @@ int MakeCommand()
     int number;
     scanf("%d", &number);*/
 
-    printf(" sp=%x ", Registers[13]);
+    //printf("r0=%x,r1=%xr2=%x,r3=%x,r4=%x,r9=%x,r10=%xr11=%x,r12=%x,sp=%x,lr=%x,pc=%x,c=%x,a=%x,b=%x,c%x,con=%x\n",Registers[0],Registers[1],Registers[2],Registers[3],Registers[4],Registers[9],Registers[10],Registers[11],Registers[12],Registers[13], Registers[14], Registers[15],Command, A,B,C, Condition);
 
     return ChooseCorrectFormat(command, one, two, three);
 }
@@ -344,7 +357,7 @@ void BlxRegisterCommand()
 
 void CmpImediateCommand()
 {
-    unsigned long cmpresult = Registers[A] - C;
+    long cmpresult = Registers[A] - C;
 
     Carry = cmpresult < 0 ? 1 : 0;
     Zero = cmpresult == 0 ? 1 : 0;
@@ -354,7 +367,7 @@ void CmpImediateCommand()
 
 void CmpRegisterCommand()
 {
-    unsigned long cmpresult = Registers[A] - Registers[B];
+    long cmpresult = Registers[A] - Registers[B];
 
     Carry = cmpresult < 0 ? 1 : 0;
     Zero = cmpresult == 0 ? 1 : 0;
@@ -397,6 +410,8 @@ char* GetStringFromRegister(int reg)
 
 void ExecRegisterCommand()
 {
+    printf("jup\n");
+
     unsigned int subcmd = Registers[A];
     if (subcmd == 1)
     {
@@ -422,7 +437,11 @@ void ExecRegisterCommand()
 
     if (subcmd == 4)
     {
+        printf("none\n");
+
         char *textPointer = GetStringFromRegister(1);
+
+        printf("hi\n");
 
         printf(textPointer);
 
@@ -449,7 +468,7 @@ void ExecRegisterCommand()
 void LdrCommand()
 {
     unsigned int adresse = Registers[B] + (C << 2);
-    printf(",%x ( %x, %x )", adresse, Registers[B], C);
+    //printf(",%x ( %x, %x )", adresse, Registers[B], C);
     if (adresse > MemorySize)
     {
         printf("out of bounds");
@@ -459,7 +478,7 @@ void LdrCommand()
     data = data | (Memory[adresse + 1] << 8);
     data = data | (Memory[adresse + 2] << 16);
     data = data | (Memory[adresse + 3] << 24);
-    printf(",%x-", data);
+    //printf(",%x-", data);
 
     Registers[A] = data;
 }
@@ -517,8 +536,10 @@ void PopCommand()
 
 void PushCommand()
 {
+
     for (int i = 0; i < 16; i++)
     {
+
         if (((C >> i) & 0x1) == 0) continue;
 
         unsigned int adresse = Registers[13];
@@ -532,6 +553,7 @@ void PushCommand()
 
         Registers[13] -= 4;
     }
+
 }
 
 // -----------------------------------------------
