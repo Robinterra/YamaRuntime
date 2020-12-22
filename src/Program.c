@@ -63,7 +63,7 @@ FILE *fd_int;
 
 // -----------------------------------------------
 
-void *Commands[0xff];
+void *Commands[0x100];
 
 // -----------------------------------------------
 
@@ -131,17 +131,8 @@ int RunCommand()
 {
     if (!CheckCondition()) return 1;
 
-    if (Command == 0xFF)
-    {
-        printf("jup\n");
-    }
-
     void (*fun_ptr)() = Commands[Command];
-    
-    if (Command == 0xFF)
-    {
-        printf("jup\n");
-    }
+
     if (fun_ptr == 0)
     {
         printf("Not Supported\n");
@@ -401,7 +392,7 @@ char* GetStringFromRegister(int reg)
     char * result = malloc(length + 1);
     result[length] = 0;
 
-    strncpy(result, (char *)((&Memory) + adresse + 4), length);
+    strncpy(result, ((char *)&Memory) + adresse + 4, length);
 
     return result;
 }
@@ -410,8 +401,6 @@ char* GetStringFromRegister(int reg)
 
 void ExecRegisterCommand()
 {
-    printf("jup\n");
-
     unsigned int subcmd = Registers[A];
     if (subcmd == 1)
     {
@@ -437,11 +426,7 @@ void ExecRegisterCommand()
 
     if (subcmd == 4)
     {
-        printf("none\n");
-
         char *textPointer = GetStringFromRegister(1);
-
-        printf("hi\n");
 
         printf(textPointer);
 
