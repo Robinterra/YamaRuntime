@@ -413,12 +413,19 @@ void ExecRegisterCommand()
         int number = 0;
         scanf("%d", &number);
         Registers[12] = number;
+
+        char *line = NULL;  /* forces getline to allocate with malloc */
+        size_t len = 0;     /* ignored when line = NULL */
+        ssize_t read;
+        read = getline(&line, &len, stdin);
+        free(line);
+
         return;
     }
 
     if (subcmd == 3)
     {
-        printf("exit with %d", Registers[1]);
+        //printf("exit with %d\n", Registers[1]);
 
         exit (Registers[1]);
         return;
