@@ -23,7 +23,7 @@ unsigned int MemorySize = 0x2FAF080;
 
 // -----------------------------------------------
 
-unsigned char Memory[0x2FAF080];
+unsigned char * Memory;
 
 // -----------------------------------------------
 
@@ -232,7 +232,7 @@ int ReadFile (  )
     Registers[13] = MemorySize - 4;
     Registers[12] = filesize;
 
-    if ( 1 != fread( &Memory , filesize, 1 , fd_int) ) exit(1);
+    if ( 1 != fread( Memory, filesize, 1, fd_int ) ) printf ("can not open yexe"),exit(10);
 
     fclose (fd_int);
 
@@ -254,9 +254,78 @@ char* GetStringFromRegister(int reg)
     char * result = malloc((*length) + 1);
     result[*length] = 0;
 
-    memcpy(result, ((char *)&Memory) + adresse + 4, *length);
+    memcpy(result, ((char *)Memory) + adresse + 4, *length);
 
     return result;
+}
+
+// -----------------------------------------------
+
+int CreateBlock(unsigned int adress, unsigned int blockState, unsigned int size)
+{
+
+    (*(int *)(Memory + adress)) = blockState;
+
+    (*(int *)(Memory + adress + 4)) = size;
+
+    return 1;
+}
+
+// -----------------------------------------------
+
+unsigned int ReservedNewBlock(unsigned int currentadress, unsigned int size, unsigned int nextBlockState, unsigned int currentBlockSize)
+{
+    CreateBlock ( currentadress, 2, size );
+
+    currentadress = currentadress + 8;
+
+    if (nextBlockState == 0) return currentadress;
+
+    unsigned int nextAdress = currentadress + size;
+
+    size = size + 8;
+
+    size = currentBlockSize - size;
+
+    CreateBlock ( nextAdress, 1, size );
+
+    return currentadress;
+}
+
+// -----------------------------------------------
+
+unsigned int Malloc(int size)
+{
+    unsigned int start = Registers[0];
+
+    unsigned int currentadress;
+    int currentBlockState;
+    unsigned int currentBlockSize;
+    unsigned nextAdress = start;
+
+    while ( 1 )
+    {
+        currentadress = nextAdress;
+
+        currentBlockSize = *(unsigned int *)(Memory + currentadress + 4);
+
+        nextAdress = currentadress + currentBlockSize + 8;
+
+        if (Memory[currentadress] == 2) continue;
+
+        if (size <= currentBlockSize) break;
+
+        if (Memory[currentadress] == 1)
+        {
+            printf("out of memory");
+            exit (3);
+            return 0;
+        }
+    }
+
+    currentBlockState = Memory[currentadress];
+
+    return ReservedNewBlock ( currentadress, size, currentBlockState, (int)currentBlockSize );
 }
 
 // -----------------------------------------------
@@ -283,6 +352,72 @@ void IsFileExist()
 
 // -----------------------------------------------
 
+int ReadData()
+{
+    char * path = GetStringFromRegister(2);
+
+    FILE * fp = fopen(path, "rb");
+    if (!fp)
+    {
+        printf("can not read file");
+        exit(2);
+    }
+
+    fseek(fd_int, 0L, SEEK_END);
+    unsigned int filesize = ftell(fd_int);
+    rewind(fd_int);
+
+    unsigned int adresse = Malloc(filesize + 4);
+
+    (*(unsigned int *)(adresse + Memory)) = filesize;
+
+    char * dataTarget = (char *)(adresse + Memory + 4);
+
+    fread(dataTarget, 1, filesize, fp);
+
+    Registers[12] = adresse;
+
+    fclose(fp);
+
+    free (path);
+
+    return 1;
+}
+
+// -----------------------------------------------
+
+int ReadObject()
+{
+    char * path = GetStringFromRegister(2);
+
+    FILE * fp = fopen(path, "rb");
+    if (!fp)
+    {
+        printf("can not read file");
+        exit(2);
+    }
+
+    fseek(fd_int, 0L, SEEK_END);
+    unsigned int filesize = ftell(fd_int);
+    rewind(fd_int);
+
+    unsigned int adresse = Malloc(filesize);
+
+    char * dataTarget = (char *)(adresse + Memory);
+
+    fread(dataTarget, 1, filesize, fp);
+
+    Registers[12] = adresse;
+
+    fclose(fp);
+
+    free (path);
+
+    return 1;
+}
+
+// -----------------------------------------------
+
 int WriteData(unsigned int adresse)
 {
     char * path = GetStringFromRegister(2);
@@ -295,12 +430,14 @@ int WriteData(unsigned int adresse)
     if (!fp)
     {
         printf("can not write file");
-        exit(1);
+        exit(4);
     }
 
     fwrite(data, 1, *length, fp);
 
     fclose(fp);
+
+    free (path);
 
     return 1;
 }
@@ -500,7 +637,15 @@ void ExecRegisterCommand()
         ssize_t read;
         read = getline(&line, &len, stdin);
 
-        //strncpy(result, (&Memory) + adresse + 4, length);
+        unsigned int adresse = Malloc(read + 4);
+
+        (*(unsigned int *)(adresse + Memory)) = read;
+
+        char * dataTarget = (char *)(adresse + Memory + 4);
+
+        memcpy(dataTarget, line, read);
+
+        Registers[12] = adresse;
 
         free (line);
     }
@@ -515,6 +660,16 @@ void ExecRegisterCommand()
         if (Registers[1] == 2)
         {
             WriteData(Registers[3]);
+            return;
+        }
+        if (Registers[1] == 3)
+        {
+            ReadObject();
+            return;
+        }
+        if (Registers[1] == 4)
+        {
+            ReadData();
             return;
         }
 
@@ -701,9 +856,11 @@ int InitCommands()
   */
 int main(int args_Length_int,char *args_chars[])
 {
+    Memory = malloc(MemorySize);
+
     InitCommands();
 
-    fd_int = fopen(args_chars[1],"r");//open(args_chars[1], O_WRONLY|O_CREAT, S_IRUSR | S_IWUSR);
+    fd_int = fopen(args_chars[1],"rb");//open(args_chars[1], O_WRONLY|O_CREAT, S_IRUSR | S_IWUSR);
 
     if( !fd_int ) printf("file not found"),exit(1);
 
