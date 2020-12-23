@@ -63,6 +63,10 @@ FILE *fd_int;
 
 // -----------------------------------------------
 
+char * FileName;
+
+// -----------------------------------------------
+
 void *Commands[0x100];
 
 // -----------------------------------------------
@@ -846,6 +850,42 @@ int InitCommands()
 
 // -----------------------------------------------
 
+int ParseCommandArguments(int args_Length_int,char *args_chars[])
+{
+    int isfile = 0;
+
+    for (int i = 1; i < args_Length_int; i++)
+    {
+        if (strcmp(args_chars[i], "help") == 0)
+        {
+            printf ("size {size}   The Size of memory in bytes / decimal format\n");
+
+            exit(1);
+        }
+        if (strcmp(args_chars[i], "size") == 0)
+        {
+            i += 1;
+
+            char *end;
+            char *str = args_chars[i];
+            long int result = strtol(str, &end, 10);
+
+            if (end == str) printf("can not parse memory input"), exit(1);
+
+            MemorySize = result;
+
+            continue;
+        }
+
+        FileName = args_chars[i];
+        isfile = 1;
+    }
+
+    return isfile;
+}
+
+// -----------------------------------------------
+
  /**
   * Dies ist der Einstiegpunkt, die Main Funktion
   *
@@ -856,11 +896,13 @@ int InitCommands()
   */
 int main(int args_Length_int,char *args_chars[])
 {
+    if (!ParseCommandArguments(args_Length_int, args_chars)) printf("try help"), exit(-1);
+
     Memory = malloc(MemorySize);
 
     InitCommands();
 
-    fd_int = fopen(args_chars[1],"rb");//open(args_chars[1], O_WRONLY|O_CREAT, S_IRUSR | S_IWUSR);
+    fd_int = fopen(FileName,"rb");//open(args_chars[1], O_WRONLY|O_CREAT, S_IRUSR | S_IWUSR);
 
     if( !fd_int ) printf("file not found"),exit(1);
 
