@@ -241,6 +241,76 @@ int ReadFile (  )
 
 // -----------------------------------------------
 
+#pragma region Memory
+
+// -----------------------------------------------
+
+char* GetStringFromRegister(int reg)
+{
+    unsigned int adresse = Registers[reg];
+
+    unsigned int * length = (unsigned int*) (adresse + Memory);
+
+    char * result = malloc((*length) + 1);
+    result[*length] = 0;
+
+    memcpy(result, ((char *)&Memory) + adresse + 4, *length);
+
+    return result;
+}
+
+// -----------------------------------------------
+
+#pragma endregion Memory
+
+// -----------------------------------------------
+
+#pragma region IOMapper
+
+// -----------------------------------------------
+
+void IsFileExist()
+{
+    char * path = GetStringFromRegister(2);
+
+    unsigned int result = 0;
+    if (access( path, F_OK ) == 0) result = 0xff;
+
+    Registers[12] = result;
+
+    free (path);
+}
+
+// -----------------------------------------------
+
+int WriteData(unsigned int adresse)
+{
+    char * path = GetStringFromRegister(2);
+
+    unsigned int * length = (unsigned int*) (adresse + Memory);
+
+    char * data = (char*) (adresse + Memory + 4);
+
+    FILE * fp = fopen(path, "w+");
+    if (!fp)
+    {
+        printf("can not write file");
+        exit(1);
+    }
+
+    fwrite(data, 1, *length, fp);
+
+    fclose(fp);
+
+    return 1;
+}
+
+// -----------------------------------------------
+
+#pragma endregion IOMapper
+
+// -----------------------------------------------
+
 #pragma region Commands
 
 // -----------------------------------------------
@@ -380,25 +450,6 @@ void EorRegisterCommand()
 
 // -----------------------------------------------
 
-char* GetStringFromRegister(int reg)
-{
-    unsigned int adresse = Registers[reg];
-
-    unsigned int length = Memory[adresse];
-    length = length | (Memory[adresse + 1] << 8);
-    length = length | (Memory[adresse + 2] << 16);
-    length = length | (Memory[adresse + 3] << 24);
-
-    char * result = malloc(length + 1);
-    result[length] = 0;
-
-    strncpy(result, ((char *)&Memory) + adresse + 4, length);
-
-    return result;
-}
-
-// -----------------------------------------------
-
 void ExecRegisterCommand()
 {
     unsigned int subcmd = Registers[A];
@@ -453,6 +504,27 @@ void ExecRegisterCommand()
 
         free (line);
     }
+
+    if (subcmd == 6)
+    {
+        if (Registers[1] == 1)
+        {
+            WriteData(Registers[3] - 4);
+            return;
+        }
+        if (Registers[1] == 2)
+        {
+            WriteData(Registers[3]);
+            return;
+        }
+
+        if (Registers[1] == 5)
+        {
+            IsFileExist();
+
+            return;
+        }
+    }
 }
 
 // -----------------------------------------------
@@ -460,19 +532,15 @@ void ExecRegisterCommand()
 void LdrCommand()
 {
     unsigned int adresse = Registers[B] + (C << 2);
-    //printf(",%x ( %x, %x )", adresse, Registers[B], C);
+
     if (adresse > MemorySize)
     {
         printf("out of bounds");
         exit (1);
     }
-    unsigned int data = Memory[adresse];
-    data = data | (Memory[adresse + 1] << 8);
-    data = data | (Memory[adresse + 2] << 16);
-    data = data | (Memory[adresse + 3] << 24);
-    //printf(",%x-", data);
+    unsigned int * data = (unsigned int*) (adresse + Memory);
 
-    Registers[A] = data;
+    Registers[A] = *data;
 }
 
 // -----------------------------------------------
@@ -515,12 +583,9 @@ void PopCommand()
 
         unsigned int adresse = Registers[13];
 
-        unsigned int data = Memory[adresse];
-        data = data | (Memory[adresse + 1] << 8);
-        data = data | (Memory[adresse + 2] << 16);
-        data = data | (Memory[adresse + 3] << 24);
+        unsigned int * data = (unsigned int*) (adresse + Memory);
 
-        Registers[i] = data;
+        Registers[i] = *data;
     }
 }
 
@@ -538,10 +603,9 @@ void PushCommand()
 
         unsigned int data = Registers[i];
 
-        Memory[adresse] = data & 0xFF;
-        Memory[adresse + 1] = (data & 0xFF00) >> 8;
-        Memory[adresse + 2] = (data & 0xFF0000) >> 16;
-        Memory[adresse + 3] = (data & 0xFF000000) >> 24;
+        unsigned int * dataTarget = (unsigned int*) (adresse + Memory);
+
+        (*dataTarget) = data;
 
         Registers[13] -= 4;
     }
@@ -556,10 +620,9 @@ void StrCommand()
 
     unsigned int data = Registers[A];
 
-    Memory[adresse] = data & 0xFF;
-    Memory[adresse + 1] = (data & 0xFF00) >> 8;
-    Memory[adresse + 2] = (data & 0xFF0000) >> 16;
-    Memory[adresse + 3] = (data & 0xFF000000) >> 24;
+    unsigned int * dataTarget = (unsigned int*) (adresse + Memory);
+
+    (*dataTarget) = data;
 }
 
 // -----------------------------------------------
