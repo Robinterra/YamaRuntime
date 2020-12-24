@@ -451,6 +451,64 @@ int WriteData(unsigned int adresse)
 
 // -----------------------------------------------
 
+int OpenReadStream()
+{
+    char * path = GetStringFromRegister(2);
+
+    FILE * fp = fopen(path, "rb");
+
+    Registers[12] = (unsigned int)fp;
+
+    return 1;
+}
+
+// -----------------------------------------------
+
+int ReadStream ()
+{
+    FILE * fp = (FILE *)Registers[2];
+
+    char * tmp = malloc(100);
+
+    unsigned int length = fread(tmp, 1, 100, fp);
+
+    if (!length)
+    {
+        free (tmp);
+
+        Registers[12] = 0;
+
+        return 1;
+    }
+
+    unsigned int adresse = Malloc(length + 4);
+
+    (*(unsigned int *)(adresse + Memory)) = length;
+
+    char * dataTarget = (char *)(adresse + Memory + 4);
+
+    memcpy(dataTarget, tmp, length);
+
+    free (tmp);
+
+    Registers[12] = adresse;
+
+    return 1;
+}
+
+// -----------------------------------------------
+
+int CloseReadStream()
+{
+    FILE * fp = (FILE *)Registers[2];
+
+    fclose(fp);
+
+    return 1;
+}
+
+// -----------------------------------------------
+
 #pragma endregion IOMapper
 
 // -----------------------------------------------
@@ -683,6 +741,27 @@ void ExecRegisterCommand()
         if (Registers[1] == 5)
         {
             IsFileExist();
+
+            return;
+        }
+
+        if (Registers[1] == 6)
+        {
+            OpenReadStream();
+
+            return;
+        }
+
+        if (Registers[1] == 7)
+        {
+            ReadStream();
+
+            return;
+        }
+
+        if (Registers[1] == 8)
+        {
+            CloseReadStream();
 
             return;
         }
