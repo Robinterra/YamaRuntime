@@ -300,6 +300,9 @@ unsigned int ReservedNewBlock(unsigned int currentadress, unsigned int size, uns
 
 unsigned int Malloc(int size)
 {
+    int test = size & 0x3;
+    if (test) size = (size ^ test) + 4;
+
     unsigned int start = Registers[0];
 
     unsigned int currentadress;
