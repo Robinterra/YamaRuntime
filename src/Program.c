@@ -467,10 +467,11 @@ int OpenReadStream()
 int ReadStream ()
 {
     FILE * fp = (FILE *)Registers[2];
+    unsigned int size = Registers[3];
 
-    char * tmp = malloc(100);
+    char * tmp = malloc(size);
 
-    unsigned int length = fread(tmp, 1, 100, fp);
+    unsigned int length = fread(tmp, 1, size, fp);
 
     if (!length)
     {
