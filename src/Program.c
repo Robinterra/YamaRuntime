@@ -71,6 +71,14 @@ void *Commands[0x100];
 
 // -----------------------------------------------
 
+int ArgsCounter = 0;
+
+// -----------------------------------------------
+
+char ** ProgramArgs;
+
+// -----------------------------------------------
+
 #pragma endregion get/set
 
 // -----------------------------------------------
@@ -226,7 +234,51 @@ int Run (  )
 
 // -----------------------------------------------
 
-int ReadFile (  )
+int MakeArguments ( int args_Length_int,char *args_chars[] )
+{
+    unsigned int length = Registers[12];
+    unsigned int adresseArgumentsArray = length;
+    Registers[1] = adresseArgumentsArray;
+    unsigned int argumentAdresse = adresseArgumentsArray + 4 + ArgsCounter * 4;
+    (*(int *)(Memory + adresseArgumentsArray)) = ArgsCounter << 2;
+    adresseArgumentsArray += 4;
+
+    Registers[12] = argumentAdresse;
+    if (ArgsCounter == 0) return 1;
+
+    int isfile = 0;
+
+    for (int i = 1; i < args_Length_int; i++)
+    {
+        if (isfile)
+        {
+            adresseArgumentsArray += 4;
+            (*(int *)(Memory + adresseArgumentsArray)) = argumentAdresse;
+
+            unsigned int size = strlen(args_chars[i]);
+            (*(int *)(Memory + argumentAdresse)) = size;
+
+            argumentAdresse += 4;
+
+            memcpy(((char*)Memory + argumentAdresse), args_chars[i], size);
+
+            unsigned int test = size & 0x3;
+            if (test != 0) size = (size ^ test) + 4;
+            argumentAdresse += size;
+
+            continue;
+        }
+        isfile = 1;
+    }
+
+    Registers[12] = argumentAdresse;
+
+    return 1;
+}
+
+// -----------------------------------------------
+
+int ReadFile ( int args_Length_int,char *args_chars[] )
 {
     fseek(fd_int, 0L, SEEK_END);
     unsigned int filesize = ftell(fd_int);
@@ -239,6 +291,8 @@ int ReadFile (  )
     if ( 1 != fread( Memory, filesize, 1, fd_int ) ) printf ("can not open yexe"),exit(10);
 
     fclose (fd_int);
+
+    MakeArguments ( args_Length_int, args_chars );
 
     return 1;
 }
@@ -959,6 +1013,12 @@ int ParseCommandArguments(int args_Length_int,char *args_chars[])
 
             continue;
         }
+        if (isfile)
+        {
+            ProgramArgs += 1;
+
+            continue;
+        }
 
         FileName = args_chars[i];
         isfile = 1;
@@ -989,7 +1049,7 @@ int main(int args_Length_int,char *args_chars[])
 
     if( !fd_int ) printf("file not found"),exit(1);
 
-    ReadFile();
+    ReadFile(args_Length_int, args_chars);
 
     return Run ();
 }
