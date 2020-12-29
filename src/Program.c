@@ -75,10 +75,6 @@ int ArgsCounter = 0;
 
 // -----------------------------------------------
 
-char ** ProgramArgs;
-
-// -----------------------------------------------
-
 #pragma endregion get/set
 
 // -----------------------------------------------
@@ -241,7 +237,7 @@ int MakeArguments ( int args_Length_int,char *args_chars[] )
     Registers[1] = adresseArgumentsArray;
     unsigned int argumentAdresse = adresseArgumentsArray + 4 + ArgsCounter * 4;
     (*(int *)(Memory + adresseArgumentsArray)) = ArgsCounter << 2;
-    adresseArgumentsArray += 4;
+    //adresseArgumentsArray += 4;
 
     Registers[12] = argumentAdresse;
     if (ArgsCounter == 0) return 1;
@@ -256,7 +252,10 @@ int MakeArguments ( int args_Length_int,char *args_chars[] )
             (*(int *)(Memory + adresseArgumentsArray)) = argumentAdresse;
 
             unsigned int size = strlen(args_chars[i]);
+
             (*(int *)(Memory + argumentAdresse)) = size;
+
+            unsigned int * length = (unsigned int*) (argumentAdresse + Memory);
 
             argumentAdresse += 4;
 
@@ -518,6 +517,19 @@ int OpenReadStream()
 
 // -----------------------------------------------
 
+int OpenWriteStream()
+{
+    char * path = GetStringFromRegister(2);
+
+    FILE * fp = fopen(path, "wb");
+
+    Registers[12] = (unsigned int)fp;
+
+    return 1;
+}
+
+// -----------------------------------------------
+
 int ReadStream ()
 {
     FILE * fp = (FILE *)Registers[2];
@@ -547,6 +559,22 @@ int ReadStream ()
     free (tmp);
 
     Registers[12] = adresse;
+
+    return 1;
+}
+
+// -----------------------------------------------
+
+int WriteStream ()
+{
+    FILE * fp = (FILE *)Registers[2];
+    unsigned int adresse = Registers[3];
+
+    unsigned int * length = (unsigned int*) (adresse + Memory);
+
+    char * data = (char*) (adresse + Memory + 4);
+
+    fwrite(data, 1, *length, fp);
 
     return 1;
 }
@@ -820,6 +848,20 @@ void ExecRegisterCommand()
 
             return;
         }
+
+        if (Registers[1] == 9)
+        {
+            OpenWriteStream();
+
+            return;
+        }
+
+        if (Registers[1] == 10)
+        {
+            WriteStream();
+
+            return;
+        }
     }
 }
 
@@ -1015,7 +1057,7 @@ int ParseCommandArguments(int args_Length_int,char *args_chars[])
         }
         if (isfile)
         {
-            ProgramArgs += 1;
+            ArgsCounter += 1;
 
             continue;
         }
