@@ -75,6 +75,10 @@ int ArgsCounter = 0;
 
 // -----------------------------------------------
 
+void * FileStreamMapping[0x100];
+
+// -----------------------------------------------
+
 #pragma endregion get/set
 
 // -----------------------------------------------
@@ -194,7 +198,7 @@ int MakeCommand()
     int number;
     scanf("%d", &number);*/
 
-    //printf("r0=%x,r1=%xr2=%x,r3=%x,r4=%x,r9=%x,r10=%xr11=%x,r12=%x,sp=%x,lr=%x,pc=%x,c=%x,a=%x,b=%x,c%x,con=%x\n",Registers[0],Registers[1],Registers[2],Registers[3],Registers[4],Registers[9],Registers[10],Registers[11],Registers[12],Registers[13], Registers[14], Registers[15],Command, A,B,C, Condition);
+    //printf("r0=%x,r1=%xr2=%x,r3=%x,r4=%x,r9=%x,r10=%xr11=%x,r12=%x,sp=%x,lr=%x,pc=%x,c=%x,a=%x,b=%x,c,%x,con=%x,carray=%x,zero=%x\n",Registers[0],Registers[1],Registers[2],Registers[3],Registers[4],Registers[9],Registers[10],Registers[11],Registers[12],Registers[13], Registers[14], Registers[15],Command, A,B,C, Condition, Carry, Zero);
 
     return ChooseCorrectFormat(command, one, two, three);
 }
@@ -255,11 +259,9 @@ int MakeArguments ( int args_Length_int,char *args_chars[] )
 
             (*(int *)(Memory + argumentAdresse)) = size;
 
-            unsigned int * length = (unsigned int*) (argumentAdresse + Memory);
-
             argumentAdresse += 4;
 
-            memcpy(((char*)Memory + argumentAdresse), args_chars[i], size);
+            memcpy(((char*)(Memory + argumentAdresse)), args_chars[i], size);
 
             unsigned int test = size & 0x3;
             if (test != 0) size = (size ^ test) + 4;
@@ -510,7 +512,21 @@ int OpenReadStream()
 
     FILE * fp = fopen(path, "rb");
 
-    Registers[12] = (unsigned int)fp;
+    if (fp == 0) return 0;
+
+    for (int i = 0; i < 0x100; i++)
+    {
+        if ( FileStreamMapping[i] != 0) continue;
+
+        FileStreamMapping[i] = (void *)fp;
+
+        Registers[12] = i;
+
+        return 1;
+    }
+
+    printf("maximum of file streams open");
+    exit(1);
 
     return 1;
 }
@@ -523,7 +539,21 @@ int OpenWriteStream()
 
     FILE * fp = fopen(path, "wb");
 
-    Registers[12] = (unsigned int)fp;
+    if (fp == 0) return 0;
+
+    for (int i = 0; i < 0x100; i++)
+    {
+        if ( FileStreamMapping[i] != 0) continue;
+
+        FileStreamMapping[i] = (void *)fp;
+
+        Registers[12] = i;
+
+        return 1;
+    }
+
+    printf("maximum of file streams open");
+    exit(1);
 
     return 1;
 }
@@ -532,7 +562,7 @@ int OpenWriteStream()
 
 int ReadStream ()
 {
-    FILE * fp = (FILE *)Registers[2];
+    FILE * fp = (FILE *) FileStreamMapping[Registers[2]];
     unsigned int size = Registers[3];
 
     char * tmp = malloc(size);
@@ -567,7 +597,7 @@ int ReadStream ()
 
 int WriteStream ()
 {
-    FILE * fp = (FILE *)Registers[2];
+    FILE * fp = (FILE *) FileStreamMapping[Registers[2]];
     unsigned int adresse = Registers[3];
 
     unsigned int * length = (unsigned int*) (adresse + Memory);
@@ -583,9 +613,11 @@ int WriteStream ()
 
 int CloseReadStream()
 {
-    FILE * fp = (FILE *)Registers[2];
+    FILE * fp = (FILE *) FileStreamMapping[Registers[2]];
 
     fclose(fp);
+
+    FileStreamMapping[Registers[2]] = 0;
 
     return 1;
 }
@@ -703,7 +735,7 @@ void BlxRegisterCommand()
 
 void CmpImediateCommand()
 {
-    long cmpresult = Registers[A] - C;
+    long cmpresult = ((long)Registers[A]) - ((long)C);
 
     Carry = cmpresult < 0 ? 1 : 0;
     Zero = cmpresult == 0 ? 1 : 0;
@@ -713,7 +745,7 @@ void CmpImediateCommand()
 
 void CmpRegisterCommand()
 {
-    long cmpresult = Registers[A] - Registers[B];
+    long cmpresult = ((long)Registers[A]) - ((long)Registers[B]);
 
     Carry = cmpresult < 0 ? 1 : 0;
     Zero = cmpresult == 0 ? 1 : 0;
@@ -784,6 +816,8 @@ void ExecRegisterCommand()
         size_t len = 0;     /* ignored when line = NULL */
         ssize_t read;
         read = getline(&line, &len, stdin);
+
+        read -= 1;
 
         unsigned int adresse = Malloc(read + 4);
 
@@ -990,6 +1024,11 @@ void SubRegisterCommand()
 
 int InitCommands()
 {
+    for (int i = 0; i < 0x100; i++)
+    {
+        FileStreamMapping[i] = 0;
+    }
+
     Carry = 0;
     Command = 0;
     A = 0;
