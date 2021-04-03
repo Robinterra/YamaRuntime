@@ -13,6 +13,9 @@ build: compile
 compile:
 	gcc -o $(bin)/$(outbinFile) $(src)
 
+compileWin:
+	gcc -D WINDOWS -o $(bin)/$(outbinFile) $(src)
+
 clean:
 	rm -rf $(bin)
 

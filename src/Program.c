@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef WINDOWS
+    #include <conio.h>
+#endif
+
 /**
  *
  * @date 2020.12.21
@@ -628,6 +632,27 @@ int CloseReadStream()
 
 // -----------------------------------------------
 
+void SetCursorPosition(int xpos, int ypos)
+{
+    printf ( "\x1B[%d;%dH", ypos + 1, xpos + 1 );
+}
+
+// -----------------------------------------------
+
+void SetBackgroundColor(int color)
+{
+    printf ( "\x1B[48;5;%dm", color );
+}
+
+// -----------------------------------------------
+
+void SetForegroundColor(int color)
+{
+    printf ( "\x1B[38;5;%dm", color );
+}
+
+// -----------------------------------------------
+
 #pragma region Commands
 
 // -----------------------------------------------
@@ -668,7 +693,6 @@ void AddRegisterCommand()
 }
 
 // -----------------------------------------------
-
 
 void AndRegisterCommand()
 {
@@ -893,6 +917,39 @@ void ExecRegisterCommand()
         if (Registers[1] == 10)
         {
             WriteStream();
+
+            return;
+        }
+    }
+
+    if (subcmd == 7)
+    {
+        if (Registers[1] == 1)
+        {
+            SetCursorPosition ( Registers[2], Registers[3] );
+
+            return;
+        }
+        if (Registers[1] == 2)
+        {
+            SetForegroundColor ( Registers[2] );
+
+            return;
+        }
+        if (Registers[1] == 3)
+        {
+            SetBackgroundColor ( Registers[2] );
+
+            return;
+        }
+        if (Registers[1] == 4)
+        {
+
+#ifdef WINDOWS
+            Registers[12] = getch();
+#else
+            Registers[12] = getchar();
+#endif
 
             return;
         }
