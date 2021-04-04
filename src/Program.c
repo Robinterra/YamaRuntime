@@ -1133,7 +1133,9 @@ int ParseCommandArguments(int args_Length_int,char *args_chars[])
     {
         if (strcmp(args_chars[i], "help") == 0)
         {
+            printf ("./yamaRuntime.exe out.yexe\n");
             printf ("size {size}   The Size of memory in bytes / decimal format\n");
+            printf ("{file}        A .yexe file to execute\n");
 
             exit(1);
         }
