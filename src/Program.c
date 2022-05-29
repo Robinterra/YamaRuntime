@@ -93,7 +93,7 @@ void * FileStreamMapping[0x100];
 
 int Format3(unsigned char one, unsigned char two, unsigned char three)
 {
-    Condition =  (one >> 4) & 0xff;
+    Condition = (one >> 4) & 0xff;
     A =  one & 0x0f;
     B = 0;
     C =  (two << 8) | three;
@@ -103,7 +103,7 @@ int Format3(unsigned char one, unsigned char two, unsigned char three)
 
 int Format2(unsigned char one, unsigned char two, unsigned char three)
 {
-    Condition =  (one >> 4) & 0xff;
+    Condition = (one >> 4) & 0xff;
     A =  one & 0x0f;
     B = ( two & 0xf0) >> 4;
     C =  ((two & 0x0F) << 8) | three;
@@ -113,7 +113,7 @@ int Format2(unsigned char one, unsigned char two, unsigned char three)
 
 int Format1(unsigned char one, unsigned char two, unsigned char three)
 {
-    Condition =  (one >> 4) & 0xff;
+    Condition = (one >> 4) & 0xff;
     A =  one & 0x0f;
     B = ( two & 0xf0) >> 4;
     C =  two & 0x0f;
@@ -1063,10 +1063,16 @@ void SubImediateCommand()
 
 // -----------------------------------------------
 
-
 void SubRegisterCommand()
 {
     Registers[A] = (~Registers[C]) + 1 + Registers[B];
+}
+
+// -----------------------------------------------
+
+void MovStatusRegisterToGenericCommand()
+{
+    Registers[A] = Carry < 2 | Zero < 1;
 }
 
 // -----------------------------------------------
@@ -1114,6 +1120,7 @@ int InitCommands()
     Commands[0x5E] = &MovRegisterCommand;
     Commands[0x54] = &MulRegisterCommand;
     Commands[0x58] = &OrrRegisterCommand;
+    Commands[0x42] = &MovStatusRegisterToGenericCommand;
     Commands[0x41] = &PopCommand;
     Commands[0x40] = &PushCommand;
     Commands[0x1C] = &StrCommand;
