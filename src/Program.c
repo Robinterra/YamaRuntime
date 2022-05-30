@@ -35,6 +35,10 @@ char Carry = 0;
 
 // -----------------------------------------------
 
+char Negative = 0;
+
+// -----------------------------------------------
+
 char Zero = 0;
 
 // -----------------------------------------------
@@ -763,6 +767,8 @@ void CmpImediateCommand()
 
     Carry = cmpresult < 0 ? 1 : 0;
     Zero = cmpresult == 0 ? 1 : 0;
+    //TODO:
+    //Negative = 
 }
 
 // -----------------------------------------------
@@ -773,6 +779,8 @@ void CmpRegisterCommand()
 
     Carry = cmpresult < 0 ? 1 : 0;
     Zero = cmpresult == 0 ? 1 : 0;
+    //TODO:
+    //Negative = 
 }
 
 // -----------------------------------------------
@@ -1072,7 +1080,7 @@ void SubRegisterCommand()
 
 void MovStatusRegisterToGenericCommand()
 {
-    Registers[A] = Carry < 2 | Zero < 1;
+    Registers[A] = Negative << 3 | Zero << 2 | Carry << 1;
 }
 
 // -----------------------------------------------
