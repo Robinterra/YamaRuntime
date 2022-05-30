@@ -705,6 +705,13 @@ void AndRegisterCommand()
 
 // -----------------------------------------------
 
+void AndImediateCommand()
+{
+    Registers[A] = Registers[B] & C;
+}
+
+// -----------------------------------------------
+
 void AslImediateCommand()
 {
     Registers[A] = Registers[B] << C;
@@ -1111,6 +1118,7 @@ int InitCommands()
     Commands[0x10] = &AddImediateCommand;
     Commands[0x50] = &AddRegisterCommand;
     Commands[0x56] = &AndRegisterCommand;
+    Commands[0x16] = &AndImediateCommand;
     Commands[0x1A] = &AslImediateCommand;
     Commands[0x5A] = &AslRegisterCommand;
     Commands[0x19] = &ASRImediateCommand;
