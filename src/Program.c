@@ -806,6 +806,13 @@ void EorRegisterCommand()
 
 // -----------------------------------------------
 
+void EorImediateCommand()
+{
+    Registers[A] = Registers[B] ^ C;
+}
+
+// -----------------------------------------------
+
 void ExecRegisterCommand()
 {
     unsigned int subcmd = Registers[A];
@@ -1130,6 +1137,7 @@ int InitCommands()
     Commands[0x5F] = &CmpRegisterCommand;
     Commands[0x55] = &DivRegisterCommand;
     Commands[0x57] = &EorRegisterCommand;
+    Commands[0x17] = &EorImediateCommand;
     Commands[0xFF] = &ExecRegisterCommand;
     Commands[0x1B] = &LdrCommand;
     Commands[0x2E] = &MovImediateCommand;
