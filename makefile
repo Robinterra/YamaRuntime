@@ -11,7 +11,7 @@ init:
 build: compile
 
 compile:
-	gcc -o $(bin)/$(outbinFile) $(src)
+	gcc -I/opt/usr/include -o $(bin)/$(outbinFile) $(src)
 
 compileWin:
 	gcc -D WINDOWS -o $(bin)/$(outbinFile) $(src)

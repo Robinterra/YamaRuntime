@@ -71,7 +71,7 @@ FILE *fd_int;
 
 // -----------------------------------------------
 
-char * FileName;
+int FileNamePos;
 
 // -----------------------------------------------
 
@@ -241,46 +241,42 @@ int Run (  )
 }
 
 // -----------------------------------------------
-
+char* GetStringFromRegister(int reg);
 int MakeArguments ( int args_Length_int,char *args_chars[] )
 {
-    unsigned int length = Registers[12];
-    unsigned int adresseArgumentsArray = length;
-    Registers[1] = adresseArgumentsArray;
-    unsigned int argumentAdresse = adresseArgumentsArray + 4 + ArgsCounter * 4;
-    (*(int *)(Memory + adresseArgumentsArray)) = ArgsCounter << 2;
-    //adresseArgumentsArray += 4;
+    unsigned int adresseArgumentsArray = Registers[12] + 4;
+    unsigned int arrayPointAdress = adresseArgumentsArray;
+    unsigned int length = args_Length_int - FileNamePos;
+    unsigned int argumentAdresse = adresseArgumentsArray + 4 + length * 4;
+    (*(unsigned int *)(Memory + arrayPointAdress)) = length << 2;
 
-    Registers[12] = argumentAdresse;
-    if (ArgsCounter == 0) return 1;
-
-    int isfile = 0;
-
-    for (int i = 1; i < args_Length_int; i++)
+    for (int i = FileNamePos; i < args_Length_int; i++)
     {
-        if (isfile)
-        {
-            adresseArgumentsArray += 4;
-            (*(int *)(Memory + adresseArgumentsArray)) = argumentAdresse;
+        adresseArgumentsArray += 4;
+        (*(unsigned int *)(Memory + adresseArgumentsArray)) = argumentAdresse;
 
-            unsigned int size = strlen(args_chars[i]);
+        unsigned int size = strlen(args_chars[i]);
 
-            (*(int *)(Memory + argumentAdresse)) = size;
+        (*(unsigned int *)(Memory + argumentAdresse)) = size;
 
-            argumentAdresse += 4;
+        argumentAdresse += 4;
 
-            memcpy(((char*)(Memory + argumentAdresse)), args_chars[i], size);
+        memcpy(((char*)(Memory + argumentAdresse)), args_chars[i], size);
 
-            unsigned int test = size & 0x3;
-            if (test != 0) size = (size ^ test) + 4;
-            argumentAdresse += size;
-
-            continue;
-        }
-        isfile = 1;
+        unsigned int test = size & 0x3;
+        if (test != 0) size = (size ^ test) + 4;
+        argumentAdresse += size;
     }
 
     Registers[12] = argumentAdresse;
+
+    unsigned int adresse = Registers[13];
+
+    unsigned int * dataTarget = (unsigned int*) (Memory + adresse);
+
+    (*dataTarget) = arrayPointAdress;
+
+    Registers[13] -= 4;
 
     return 1;
 }
@@ -1191,7 +1187,7 @@ int ParseCommandArguments(int args_Length_int,char *args_chars[])
             continue;
         }
 
-        FileName = args_chars[i];
+        FileNamePos = i;
         isfile = 1;
     }
 
@@ -1216,7 +1212,7 @@ int main(int args_Length_int,char *args_chars[])
 
     InitCommands();
 
-    fd_int = fopen(FileName,"rb");//open(args_chars[1], O_WRONLY|O_CREAT, S_IRUSR | S_IWUSR);
+    fd_int = fopen(args_chars[FileNamePos],"rb");//open(args_chars[1], O_WRONLY|O_CREAT, S_IRUSR | S_IWUSR);
 
     if( !fd_int ) printf("file not found"),exit(1);
 
