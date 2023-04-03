@@ -241,7 +241,7 @@ int Run (  )
 }
 
 // -----------------------------------------------
-char* GetStringFromRegister(int reg);
+
 int MakeArguments ( int args_Length_int,char *args_chars[] )
 {
     unsigned int adresseArgumentsArray = Registers[12] + 4;
@@ -566,10 +566,16 @@ int OpenWriteStream()
 
 int ReadStream ()
 {
-    FILE * fp = (FILE *) FileStreamMapping[Registers[2]];
-    unsigned int size = Registers[3];
+    FILE * fp = (FILE *) FileStreamMapping[Registers[0]];
+    unsigned int size = Registers[2];
+    unsigned int adresse = Registers[3];
 
-    char * tmp = malloc(size);
+    char * tmp = (char *)(adresse + Memory)
+    unsigned int length = fread(tmp, 1, size, fp);
+
+    Registers[12] = length;
+
+    /*char * tmp = malloc(size);
 
     unsigned int length = fread(tmp, 1, size, fp);
 
@@ -594,7 +600,7 @@ int ReadStream ()
 
     Registers[12] = adresse;
 
-    return 1;
+    return 1;*/
 }
 
 // -----------------------------------------------
@@ -622,6 +628,22 @@ int CloseReadStream()
     fclose(fp);
 
     FileStreamMapping[Registers[2]] = 0;
+    Registers[12] = 0xff;
+
+    return 1;
+}
+
+// -----------------------------------------------
+
+int SeekStream()
+{
+    FILE * fp = (FILE *) FileStreamMapping[Registers[0]];
+    unsigned int seekValue = Registers[2];
+    unsigned int seekMode = Registers[3];
+
+    fseek(fp, seekValue, seekMode);
+
+    Registers[12] = 0xff;
 
     return 1;
 }
@@ -937,6 +959,11 @@ void ExecRegisterCommand()
             WriteStream();
 
             return;
+        }
+
+        if (Registers[1] == 11)
+        {
+            SeekStream();
         }
     }
 
